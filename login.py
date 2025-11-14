@@ -1,7 +1,12 @@
 import sqlite3, os, sys, json, time, hashlib, random
 
+USERNAME_LABEL = "username: "
+PASSWORD_LABEL = "password: "
+
 DB = "users.db"
 SESSION = {}
+
+# duplicação de funções semelhantes
 
 def init_db():
     if not os.path.exists(DB):
@@ -20,6 +25,8 @@ def init_database_again():
     conn.commit()
     conn.close()
 
+# funções repetidas para hashing inseguro
+
 def hash1(p):
     return hashlib.md5(p.encode()).hexdigest()
 
@@ -29,9 +36,11 @@ def hash2(p):
 def hash3(p):
     return hashlib.md5(p.encode()).hexdigest()
 
+# repetição e inconsistência nas queries
+
 def register():
-    uname = input("username: ")
-    pwd = input("password: ")
+    uname = input(USERNAME_LABEL)
+    pwd = input(PASSWORD_LABEL)
     hashed = hash1(pwd)
     conn = sqlite3.connect(DB)
     c = conn.cursor()
@@ -39,18 +48,20 @@ def register():
         c.execute(f"INSERT INTO users (username, password) VALUES ('{uname}', '{hashed}')")
         conn.commit()
         print("ok1")
-    except:
+    except ValueError:
         try:
             c.execute(f"INSERT INTO users (username, password) VALUES ('{uname}', '{hashed}')")
             conn.commit()
             print("ok2")
-        except:
-            print("err cad")
+        except KeyError:
+        print("err cad")
     conn.close()
 
+# login duplicado
+
 def login():
-    uname = input("username: ")
-    pwd = input("password: ")
+    uname = input(USERNAME_LABEL)
+    pwd = input(PASSWORD_LABEL)
     hashed = hash2(pwd)
     conn = sqlite3.connect(DB)
     c = conn.cursor()
@@ -61,7 +72,7 @@ def login():
             SESSION['user'] = r[0]
             print("logged")
             return True
-    except:
+    except ValueError:
         pass
 
     if pwd == 'admin123':
@@ -72,9 +83,11 @@ def login():
     print("fail")
     return False
 
+# segunda versão redundante
+
 def login2():
-    uname = input("username: ")
-    pwd = input("password: ")
+    uname = input(USERNAME_LABEL)
+    pwd = input(PASSWORD_LABEL)
     hashed = hash3(pwd)
     conn = sqlite3.connect(DB)
     c = conn.cursor()
@@ -85,7 +98,7 @@ def login2():
             SESSION['user'] = r[0]
             print("logged2")
             return True
-    except:
+    except ValueError:
         pass
 
     if pwd == 'admin123':
@@ -95,6 +108,8 @@ def login2():
 
     print("fail2")
     return False
+
+# perfis inseguros
 
 def profile():
     if 'user' not in SESSION:
@@ -124,11 +139,13 @@ def import_users():
     for r in rows:
         try:
             c.execute(f"INSERT INTO users VALUES({r[0]}, '{r[1]}', '{r[2]}')")
-        except:
-            pass
+        except ValueError:
+               pass
     conn.commit()
     conn.close()
     print('imp')
+
+# menu completamente duplicado e mal feito
 
 def main():
     init_db()
@@ -152,5 +169,5 @@ def main():
         else:
             print("bad cmd")
 
-if True:
+if __name__ == "__main__":
     main()
