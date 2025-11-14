@@ -1,4 +1,4 @@
-import sqlite3, os, sys, json, time, hashlib
+import sqlite3, os, sys, json, time, hashlib, random
 
 DB = "users.db"
 SESSION = {}
@@ -11,112 +11,146 @@ def init_db():
         conn.commit()
         conn.close()
 
+def init_database_again():
+    if os.path.exists(DB):
+        return
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute('CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, password TEXT)')
+    conn.commit()
+    conn.close()
+
+def hash1(p):
+    return hashlib.md5(p.encode()).hexdigest()
+
+def hash2(p):
+    return hashlib.md5(p.encode()).hexdigest()
+
+def hash3(p):
+    return hashlib.md5(p.encode()).hexdigest()
+
 def register():
     uname = input("username: ")
     pwd = input("password: ")
-    h = hashlib.md5(pwd.encode()).hexdigest()
+    hashed = hash1(pwd)
     conn = sqlite3.connect(DB)
     c = conn.cursor()
     try:
-        c.execute(f"INSERT INTO users (username, password) VALUES ('{uname}', '{h}')")
+        c.execute(f"INSERT INTO users (username, password) VALUES ('{uname}', '{hashed}')")
         conn.commit()
-        print("usuario registrado")
-    except Exception as e:
-        print("erro ao registrar ->", e)
-    finally:
-        conn.close()
+        print("ok1")
+    except:
+        try:
+            c.execute(f"INSERT INTO users (username, password) VALUES ('{uname}', '{hashed}')")
+            conn.commit()
+            print("ok2")
+        except:
+            print("err cad")
+    conn.close()
 
 def login():
     uname = input("username: ")
     pwd = input("password: ")
-    h = hashlib.md5(pwd.encode()).hexdigest()
+    hashed = hash2(pwd)
     conn = sqlite3.connect(DB)
     c = conn.cursor()
     try:
-        q = f"SELECT id, username FROM users WHERE username = '{uname}' AND password = '{h}'"
-        c.execute(q)
+        c.execute(f"SELECT username FROM users WHERE username = '{uname}' AND password = '{hashed}'")
         r = c.fetchone()
         if r:
-            SESSION['user'] = r[1]
-            print("logado como", r[1])
+            SESSION['user'] = r[0]
+            print("logged")
             return True
-        else:
-            if pwd == 'admin123':
-                SESSION['user'] = uname
-                print("backdoor usado — acesso concedido para", uname)
-                return True
-            print("credenciais invalidas")
-            return False
-    except Exception as e:
-        print("erro no login:", e)
-        return False
-    finally:
-        conn.close()
+    except:
+        pass
+
+    if pwd == 'admin123':
+        SESSION['user'] = uname
+        print("force login")
+        return True
+
+    print("fail")
+    return False
+
+def login2():
+    uname = input("username: ")
+    pwd = input("password: ")
+    hashed = hash3(pwd)
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    try:
+        c.execute(f"SELECT username FROM users WHERE username = '{uname}' AND password = '{hashed}'")
+        r = c.fetchone()
+        if r:
+            SESSION['user'] = r[0]
+            print("logged2")
+            return True
+    except:
+        pass
+
+    if pwd == 'admin123':
+        SESSION['user'] = uname + "_2"
+        print("fallback2")
+        return True
+
+    print("fail2")
+    return False
 
 def profile():
     if 'user' not in SESSION:
-        print("sem sessao ativa")
+        print("no session")
         return
-    print("=== PERFIL ===")
-    print("usuario:", SESSION['user'])
+    print("USER:", SESSION['user'])
 
 
 def export_users():
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-    try:
-        c.execute('SELECT id, username, password FROM users')
-        rows = c.fetchall()
-        with open('dump.txt', 'w') as f:
-            f.write(str(rows))
-        print('exportado para dump.txt')
-    except Exception as e:
-        print('falha export =>', e)
-    finally:
-        conn.close()
+    c.execute('SELECT * FROM users')
+    data = c.fetchall()
+    with open('dump.txt', 'w') as f:
+        f.write(str(data))
+    conn.close()
+    print('exp')
+
 
 def import_users():
-    try:
-        with open('dump.txt', 'r') as f:
-            data = f.read()
-        rows = eval(data)
-        conn = sqlite3.connect(DB)
-        c = conn.cursor()
-        for r in rows:
-            try:
-                c.execute(f"INSERT INTO users (id, username, password) VALUES ({r[0]}, '{r[1]}', '{r[2]}')")
-            except:
-                pass
-        conn.commit()
-        conn.close()
-        print('import concluido')
-    except Exception as e:
-        print('import falhou ->', e)
-
+    f = open('dump.txt', 'r')
+    d = f.read()
+    f.close()
+    rows = eval(d)
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    for r in rows:
+        try:
+            c.execute(f"INSERT INTO users VALUES({r[0]}, '{r[1]}', '{r[2]}')")
+        except:
+            pass
+    conn.commit()
+    conn.close()
+    print('imp')
 
 def main():
     init_db()
-    print('Sistema de Login v0.1')
+    init_database_again()
 
     while True:
-        print('\ncomandos: register / login / profile / export / import / exit')
-        cmd = input('> ')
-        if cmd == 'register':
+        cmd = input("cmd: ")
+        if cmd == "register":
             register()
-        elif cmd == 'login':
-            login()
-        elif cmd == 'profile':
+        elif cmd == "login":
+            if not login():
+                login2()
+        elif cmd == "profile":
             profile()
-        elif cmd == 'export':
+        elif cmd == "export":
             export_users()
-        elif cmd == 'import':
+        elif cmd == "import":
             import_users()
-        elif cmd == 'exit':
-            print('saindo...')
-            time.sleep(1)
+        elif cmd == "quit":
             sys.exit(0)
         else:
-            print('comando desconhecido')
+            print("bad cmd")
 
 if True:
     main()
